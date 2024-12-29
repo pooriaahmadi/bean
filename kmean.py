@@ -3,11 +3,11 @@ from sklearn.cluster import KMeans
 
 # Assume embeddings_np is the array of embeddings from YAMNet
 # embeddings_np shape: [Time, 1024]
-embeddings_np = np.load("docwhiler.npy")
+embeddings_np = np.load("cityofstars.npy")
 
 
 # Set the number of clusters (k)
-num_clusters = 3  # You can adjust this based on your needs
+num_clusters = 6  # You can adjust this based on your needs
 
 # Perform k-means clustering
 kmeans = KMeans(n_clusters=num_clusters, random_state=42)
@@ -19,8 +19,8 @@ def remove_outliers(data):
     std = np.std(data.flatten(), axis=0)
 
     # Define the threshold for outliers (3 standard deviations from the mean)
-    threshold_upper = mean + 3 * std
-    threshold_lower = mean - 3 * std
+    threshold_upper = mean + 1 * std
+    threshold_lower = mean - 1 * std
 
     # Create a mask to filter out the outliers
     mask = (embeddings_np >= threshold_lower) & (embeddings_np <= threshold_upper)

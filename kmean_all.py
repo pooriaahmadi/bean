@@ -1,9 +1,14 @@
 import numpy as np
 from sklearn.cluster import KMeans
+import os
+import pickle
 
 # Assume embeddings_np is the array of embeddings from YAMNet
 # embeddings_np shape: [Time, 1024]
-embeddings_np = np.load("docwhiler.npy")
+embeddings = np.zeros((0, 1024))
+for file in os.listdir("embeddings"):
+    array = np.load(f"embeddings/{file}")
+    embeddings = np.vstack((embeddings, array))
 
 
 # Set the number of clusters (k)
@@ -11,7 +16,30 @@ num_clusters = 3  # You can adjust this based on your needs
 
 # Perform k-means clustering
 kmeans = KMeans(n_clusters=num_clusters, random_state=42)
-kmeans.fit(embeddings_np)
+
+
+# Function to remove outliers using IQR
+def remove_outliers(data):
+    mean = np.mean(data.flatten(), axis=0)
+    std = np.std(data.flatten(), axis=0)
+
+    # Define the threshold for outliers (3 standard deviations from the mean)
+    threshold_upper = mean + 3 * std
+    threshold_lower = mean - 3 * std
+
+    # Create a mask to filter out the outliers
+    mask = (data >= threshold_lower) & (data <= threshold_upper)
+    # Apply the mask to filter the embeddings
+    filtered_embeddings_np = np.where(mask, data, 0)
+
+    return filtered_embeddings_np
+
+
+# Remove outliers
+# clean_data = remove_outliers(embeddings)
+# print(clean_data)
+kmeans.fit(embeddings)
+clean_data = embeddings
 
 # Cluster labels for each embedding
 cluster_labels = kmeans.labels_
@@ -19,24 +47,16 @@ cluster_labels = kmeans.labels_
 # Cluster centers
 cluster_centers = kmeans.cluster_centers_
 
-
-# Print some results
-print(f"Cluster Labels: {cluster_labels}")
-print(f"Cluster Centers: {cluster_centers.shape}")  # (num_clusters, 1024)
-
-new_embeddings = np.zeros((embeddings_np.shape[0], num_clusters))
-for i, embedding in enumerate(embeddings_np):
-    distances = np.linalg.norm(cluster_centers - embedding, axis=1)
-    new_embeddings[i] = distances
-
-np.save("reduced_embeddings_xyz.npy", new_embeddings)
+# Save the model
+with open("kmeans_model.pkl", "wb") as file:
+    pickle.dump(kmeans, file)
 
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
 
 # Reduce dimensionality for visualization
 pca = PCA(n_components=2)
-reduced_embeddings = pca.fit_transform(embeddings_np)
+reduced_embeddings = pca.fit_transform(clean_data)
 
 # Plot the clusters
 plt.figure(figsize=(8, 6))

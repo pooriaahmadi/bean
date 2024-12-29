@@ -11,7 +11,30 @@ num_clusters = 3  # You can adjust this based on your needs
 
 # Perform k-means clustering
 kmeans = KMeans(n_clusters=num_clusters, random_state=42)
-kmeans.fit(embeddings_np)
+
+
+# Function to remove outliers using IQR
+def remove_outliers(data):
+    mean = np.mean(data.flatten(), axis=0)
+    std = np.std(data.flatten(), axis=0)
+
+    # Define the threshold for outliers (3 standard deviations from the mean)
+    threshold_upper = mean + 3 * std
+    threshold_lower = mean - 3 * std
+
+    # Create a mask to filter out the outliers
+    mask = (embeddings_np >= threshold_lower) & (embeddings_np <= threshold_upper)
+    row_mask = np.all(mask, axis=1)
+    # Apply the mask to filter the embeddings
+    filtered_embeddings_np = np.where(mask, embeddings_np, 0)
+
+    return filtered_embeddings_np
+
+
+# Remove outliers
+clean_data = remove_outliers(embeddings_np)
+print(clean_data)
+kmeans.fit(clean_data)
 
 # Cluster labels for each embedding
 cluster_labels = kmeans.labels_
@@ -24,8 +47,8 @@ cluster_centers = kmeans.cluster_centers_
 print(f"Cluster Labels: {cluster_labels}")
 print(f"Cluster Centers: {cluster_centers.shape}")  # (num_clusters, 1024)
 
-new_embeddings = np.zeros((embeddings_np.shape[0], num_clusters))
-for i, embedding in enumerate(embeddings_np):
+new_embeddings = np.zeros((clean_data.shape[0], num_clusters))
+for i, embedding in enumerate(clean_data):
     distances = np.linalg.norm(cluster_centers - embedding, axis=1)
     new_embeddings[i] = distances
 
@@ -36,7 +59,7 @@ import matplotlib.pyplot as plt
 
 # Reduce dimensionality for visualization
 pca = PCA(n_components=2)
-reduced_embeddings = pca.fit_transform(embeddings_np)
+reduced_embeddings = pca.fit_transform(clean_data)
 
 # Plot the clusters
 plt.figure(figsize=(8, 6))

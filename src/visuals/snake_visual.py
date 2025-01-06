@@ -11,21 +11,89 @@ import arcade
 import numpy as np
 import cv2
 from scipy.interpolate import CubicSpline
+import argparse
+
+parser = argparse.ArgumentParser(
+    prog="This program will turn clustered embeddings into visuals"
+)
 
 
-WINDOW_WIDTH = 640
-WINDOW_HEIGHT = 480
+def check_extension(filename, ext):
+    if not filename.lower().endswith(ext):
+        raise argparse.ArgumentTypeError(f"Filename must have a {ext} extension")
+
+    return filename
+
+
+parser.add_argument(
+    "--embedding",
+    type=lambda x: check_extension(x, ".npy"),
+    help="The file path for the clustered embeddings",
+)
+parser.add_argument(
+    "--embedding_interval",
+    type=float,
+    help="The time interval between each embedding sample, in seconds.",
+)
+parser.add_argument(
+    "--outputpath",
+    type=lambda x: check_extension(x, ".mp4"),
+    default="output_video.mp4",
+    help="the desired location of the output video",
+)
+parser.add_argument(
+    "--musicpath",
+    type=lambda x: check_extension(x, ".wav"),
+    help="The file path for the audio .wav file.",
+)
+parser.add_argument("--window_width", type=int, default=500)
+parser.add_argument("--window_height", type=int, default=500)
+parser.add_argument(
+    "--fading_count",
+    type=int,
+    default=5,
+    help="The lifetime of the points before fading away",
+)
+parser.add_argument(
+    "--fade_rate",
+    type=int,
+    default=10,
+    help="The speed at which backgrounds and things fade",
+)
+parser.add_argument(
+    "--base_line_width",
+    type=int,
+    default=2,
+    help="The smallest width that the lines can be",
+)
+parser.add_argument(
+    "--base_line_range",
+    type=int,
+    default=4,
+    help="The range that the line width can grow based on the clusters",
+)
+parser.add_argument(
+    "--smooth_points",
+    type=int,
+    default=5,
+    help="The amount of smooth points between each embedding",
+)
+
+args = parser.parse_args()
+
+WINDOW_WIDTH = args.window_width
+WINDOW_HEIGHT = args.window_height
 WINDOW_TITLE = "Music visualizer"
-FADING_COUNT = 5
-FADE_RATE = 10
+FADING_COUNT = args.fading_count
+FADE_RATE = args.fade_rate
 FPS_MULTIPLIER = 1
-BASE_LINE_WIDTH = 2
-BASE_LINE_RANGE = 4
+BASE_LINE_WIDTH = args.base_line_width
+BASE_LINE_RANGE = args.base_line_range
 
-VIDEO_FILE = "visuals/output_video.mp4"  # Output video file name
-POINT_UPDATE_RATE = 1 / 0.48  # frames per second
+VIDEO_FILE = args.outputpath  # Output video file name
+POINT_UPDATE_RATE = 1 / args.embedding_interval  # frames per second
 VIDEO_FPS = POINT_UPDATE_RATE * 30  # Frames per second for the video
-SMOOTH_POINTS = 5
+SMOOTH_POINTS = args.smooth_points
 
 COLOUR_PALETTES = (
     ((255, 87, 51), (255, 195, 0)),
@@ -84,8 +152,8 @@ class GameView(arcade.View):
 
         # If you have sprite lists, you should create them here,
         # and set them to None
-        self.music: np.ndarray = np.load("visuals/reduced_embeddings_4clusters.npy")
-        self.audio = arcade.load_sound("sparks.wav")
+        self.music: np.ndarray = np.load(args.embedding)
+        self.audio = arcade.load_sound(args.musicpath)
 
         self.colours = remove_outliers(self.music[:, 2], 0)
         self.colours = normalize_array_to_0_1(self.colours)

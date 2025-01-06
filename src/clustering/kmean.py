@@ -6,8 +6,12 @@ parser = argparse.ArgumentParser(
     prog="Kmean Cluster", description="This program will cluster the given .npy file"
 )
 
-parser.add_argument("--clusters", type=int, help="THe number of clusters")
-parser.add_argument("--filepath", type=str, help="The path to the .npy file")
+parser.add_argument(
+    "--clusters", type=int, help="THe number of clusters", required=True
+)
+parser.add_argument(
+    "--filepath", type=str, help="The path to the .npy file", required=True
+)
 parser.add_argument(
     "--outputpath",
     type=str,

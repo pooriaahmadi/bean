@@ -6,3 +6,5 @@ embeddings
 model_checkpoints
 audios
 *.npy
+tmp
+*.mp4

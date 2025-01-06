@@ -214,7 +214,7 @@ class GameView(arcade.View):
 
         # Call draw() on all your sprite lists below
 
-        self.snake_sprites.draw()
+        # self.snake_sprites.draw()
 
         for i, snake_sprite in enumerate(self.snake_sprites):
             if i == len(self.snake_sprites) - 1:

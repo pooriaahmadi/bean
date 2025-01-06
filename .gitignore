@@ -7,4 +7,4 @@ model_checkpoints
 audios
 *.npy
 tmp
-*.mp4
+/*.mp4

@@ -4,3 +4,5 @@ vggish_pca_params.npz
 wav_files
 embeddings
 model_checkpoints
+audios
+*.npy

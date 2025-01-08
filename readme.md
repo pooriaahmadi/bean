@@ -1,5 +1,5 @@
 
-# AI Music Visualizer
+# BEAN: Bridging Embeddings to Audio-visual Narratives 
 
 ## Brief description
 In this project we aimed to create various representations of a sound track in the form of a video. Now if you remember windows XP used to have a visualizer that was based on pitch, tempo, bass, and meta-data from the file itself. We wanted to make something similar that was *actually* based on the music itself like vibe, instruments used, speed, how dancable it is, and other factors that are beyond just hard-coding some predefined effects.

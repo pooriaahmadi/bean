@@ -1,10 +1,46 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2
-from mpl_toolkits.mplot3d import Axes3D
+import argparse
+
+parser = argparse.ArgumentParser(
+    prog="Visual 3D",
+    description="This will turn an embedding into a 3D graph with respect to time",
+)
+
+
+def check_extension(filename, ext):
+    if not filename.lower().endswith(ext):
+        raise argparse.ArgumentTypeError(f"Filename must have a {ext} extension")
+
+    return filename
+
+
+parser.add_argument(
+    "--embedding",
+    type=lambda x: check_extension(x, ".npy"),
+    help="The file path for the clustered embeddings",
+)
+parser.add_argument(
+    "--embedding_interval",
+    type=float,
+    help="The time interval between each embedding sample, in seconds.",
+)
+parser.add_argument(
+    "--outputpath",
+    type=lambda x: check_extension(x, ".mp4"),
+    default="output_video.mp4",
+    help="the desired location of the output video",
+)
+
+args = parser.parse_args()
+
+EMBEDDING_PATH = args.embedding
+OUTPUT_PATH = args.outputpath
+EMBEDDING_INTERVAL = args.embedding_interval
 
 # Load the .npy file
-data = np.load("reduced_embeddings_xyz.npy")
+data = np.load(EMBEDDING_PATH)
 
 # Ensure the data is in the expected format
 assert data.ndim == 2 and data.shape[1] == 3, "Expected data shape: (num_frames, 3)"
@@ -16,9 +52,9 @@ ax = fig.add_subplot(111, projection="3d")
 # Set up the video writer
 frame_width, frame_height = 640, 480
 out = cv2.VideoWriter(
-    "output_xyz.mp4",
+    OUTPUT_PATH,
     cv2.VideoWriter_fourcc(*"mp4v"),
-    2.0666666666,
+    1 / EMBEDDING_INTERVAL,
     (frame_width, frame_height),
 )
 
@@ -27,7 +63,7 @@ out = cv2.VideoWriter(
 def remove_outliers(data):
     mean = np.mean(data, axis=0)
     std = np.std(data, axis=0)
-    return data[np.all(np.abs(data - mean) < mean * std, axis=1)]
+    return data[np.all(np.abs(data - mean) < 2 * std, axis=1)]
 
 
 # Remove outliers
@@ -85,4 +121,4 @@ for i in range(data.shape[0]):
 out.release()
 cv2.destroyAllWindows()
 
-print("Video saved as output.mp4")
+print("Video saved as " + OUTPUT_PATH)

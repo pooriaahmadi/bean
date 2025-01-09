@@ -26,6 +26,14 @@ parser.add_argument(
 )
 
 parser.add_argument(
+    "--embed_model",
+    type=str,
+    help="Embedding model to use",
+    choices=["yamnet", "mert"],
+    required=True,
+)
+
+parser.add_argument(
     "--visuals",
     choices=["snake", "3d"],
     help="The type of visualization",
@@ -60,15 +68,19 @@ def create_or_clear_folder(folder_path):
         os.makedirs(folder_path)
 
 
-def generate_embedding(filepath, outputpath):
-    command = [
-        venv_python,
-        "src/embedding/embedding.py",
-        "--musicpath",
-        filepath,
-        "--outputpath",
-        outputpath,
-    ]
+def generate_embedding(filepath, outputpath, embed_model):
+    match embed_model:
+        case "yamnet":
+            command = [
+                venv_python,
+                "src/embedding/yamnet_embed.py",
+                "--musicpath",
+                filepath,
+                "--outputpath",
+                outputpath,
+            ]
+        case "mert":
+            command = []
     process = subprocess.run(command, capture_output=True, text=True)
     if process.returncode == 0:
         return True
@@ -77,12 +89,15 @@ def generate_embedding(filepath, outputpath):
         raise RuntimeError("Something went wrong when trying to embed file")
 
 
-def generate_clusters(filepath, outputpath, visualization):
+def generate_clusters(filepath, outputpath, visualization, embed_type):
+    if embed_type == "mert":
+        return
     match visualization:
         case "snake":
             clusters = "4"
         case "3d":
             clusters = "3"
+
     command = [
         venv_python,
         "src/clustering/kmean.py",
@@ -105,7 +120,16 @@ def generate_clusters(filepath, outputpath, visualization):
 def generate_visuals(filepath, visuals, music, outputpath):
     match visuals:
         case "3d":
-            command = []
+            command = [
+                venv_python,
+                "src/visuals/to_visual_xyz.py",
+                "--embedding",
+                filepath,
+                "--embedding_interval",
+                "0.48",
+                "--outputpath",
+                outputpath,
+            ]
         case "snake":
             command = [
                 venv_python,

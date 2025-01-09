@@ -5,19 +5,35 @@ from transformers import AutoModel
 import torch
 from torch import nn
 import torchaudio.transforms as T
-from datasets import load_dataset
-import matplotlib.pyplot as plt
 from matplotlib import cm as cm
-from PIL import Image
-import cv2 
-from scipy.io.wavfile import read
 import librosa
 from scipy.stats import zscore
 from sklearn import cluster as sk
 from sklearn.decomposition import PCA
 
+import argparse
 
-'''
+parser = argparse.ArgumentParser(
+    prog="Dolev's embedding and clustering script",
+    description="This file will embed and cluster a given .wav file",
+)
+
+
+parser.add_argument(
+    "--musicpath", type=str, help="The path to the music file", required=True
+)
+parser.add_argument(
+    "--outputpath", type=str, help="The output file path", default="embeddings.npy"
+)
+parser.add_argument(
+    "--timeframe",
+    type=float,
+    help="The intervals at which the embedding happens",
+    default=0.3,
+)
+
+args = parser.parse_args()
+"""
 Alternate pipeline 
 Implements embedding model MERT-v1-330M
 and feature clustering methods PCA Dimension Reduction and Agglomerate Clustering
@@ -25,7 +41,8 @@ and feature clustering methods PCA Dimension Reduction and Agglomerate Clusterin
 Outputs set of points to be passed on to visuals.
 Not currently implemented in code, but can be connected by altering the files in /visuals to use embedsong() to generate list of points
 embedsong() takes in argument "name" which should be route to .wav file, and returns list of cluster values. 
-'''
+"""
+
 
 def point_maker(embeddings, labels, cluster=0):
     temp = []
@@ -40,6 +57,7 @@ def point_maker(embeddings, labels, cluster=0):
         points.append(np.average(temp))
     return points
 
+
 def PCAPointmaker(embeddings):
     x = []
     y = []
@@ -53,28 +71,34 @@ def PCAPointmaker(embeddings):
     y = [step[1] for step in pointar]
     z = [step[2] for step in pointar]
     c = [step[3] for step in pointar]
-    #t = [step[4] for step in pointar]
-    #f = [step[5] for step in pointar]
-    np.save("clustered_data.npy", np.column_stack((np.array(x),np.array(y), np.array(z), np.array(c))))
+    # t = [step[4] for step in pointar]
+    # f = [step[5] for step in pointar]
+    np.save(
+        args.outputpath,
+        np.column_stack((np.array(x), np.array(y), np.array(z), np.array(c))),
+    )
     return x, y, z, c
-def embedsong(name = "let_it_go.wav" ): #replace with your song route in .wav format
-    cluster = "PCA" #sets type of clustering to be used. Can be "AGG" - Agglomerate, "Kmeans" - KMeans, or "PCA" - PCA Dimension reduction
 
 
-    #load wav
+def embedsong(name):  # replace with your song route in .wav format
+    cluster = "PCA"  # sets type of clustering to be used. Can be "AGG" - Agglomerate, "Kmeans" - KMeans, or "PCA" - PCA Dimension reduction
+
+    # load wav
     input_data, sample_rate = librosa.load(name)
-    np.array(input_data[1],dtype=float)
+    np.array(input_data[1], dtype=float)
 
-    #load model
+    # load model
     model = AutoModel.from_pretrained("m-a-p/MERT-v1-330M", trust_remote_code=True)
-    processor = Wav2Vec2FeatureExtractor.from_pretrained("m-a-p/MERT-v1-330M",trust_remote_code=True)
+    processor = Wav2Vec2FeatureExtractor.from_pretrained(
+        "m-a-p/MERT-v1-330M", trust_remote_code=True
+    )
 
-    #load data and resample
+    # load data and resample
     dataset = input_data
     sampling_rate = sample_rate
     resample_rate = processor.sampling_rate
     if resample_rate != sampling_rate:
-        print(f'setting rate from {sampling_rate} to {resample_rate}')
+        print(f"setting rate from {sampling_rate} to {resample_rate}")
         resampler = T.Resample(sampling_rate, resample_rate)
     else:
         resampler = None
@@ -85,12 +109,15 @@ def embedsong(name = "let_it_go.wav" ): #replace with your song route in .wav fo
         doubled = tens.float()
         input_audio = resampler(doubled)
 
-    #make segments
-    segment_length = int(resample_rate/5)  # 1 second worth of samples
+    # make segments
+    segment_length = int(resample_rate * args.timeframe)
     num_segments = len(input_audio) // segment_length
-    audio_segments = [input_audio[i * segment_length:(i + 1) * segment_length] for i in range(num_segments)]
+    audio_segments = [
+        input_audio[i * segment_length : (i + 1) * segment_length]
+        for i in range(num_segments)
+    ]
 
-    #make embedding array
+    # make embedding array
     embeddings = []
     for segment in audio_segments:
         inputs = processor(segment, sampling_rate=resample_rate, return_tensors="pt")
@@ -99,7 +126,9 @@ def embedsong(name = "let_it_go.wav" ): #replace with your song route in .wav fo
         all_layer_hidden_states = torch.stack(outputs.hidden_states).squeeze()
         time_reduced_hidden_states = all_layer_hidden_states.mean(-2)
         aggregator = nn.Conv1d(in_channels=25, out_channels=1, kernel_size=1)
-        weighted_avg_hidden_states = aggregator(time_reduced_hidden_states.unsqueeze(0)).squeeze()
+        weighted_avg_hidden_states = aggregator(
+            time_reduced_hidden_states.unsqueeze(0)
+        ).squeeze()
 
         embeddings.append(weighted_avg_hidden_states.detach().numpy())
 
@@ -108,10 +137,9 @@ def embedsong(name = "let_it_go.wav" ): #replace with your song route in .wav fo
 
     # Z-Score Method for outlier removal (only for plotting)
     z_scores = np.abs(zscore(sequences_np))
-    threshold = 3  
+    threshold = 3
     z_outliers = np.where(z_scores > threshold)[0]
     sequences_no_outliers_z = np.delete(sequences_np, z_outliers, axis=0)
-
 
     # Visualize without outliers (PCA for 2D visualization)
     pca = PCA(n_components=2)
@@ -123,7 +151,7 @@ def embedsong(name = "let_it_go.wav" ): #replace with your song route in .wav fo
     agg_clustering = sk.AgglomerativeClustering(n_clusters=4)
     agg_labels = agg_clustering.fit_predict(sequences_no_outliers_z)
 
-    '''fig, axes = plt.subplots(1, 2, figsize=(12, 6))
+    """fig, axes = plt.subplots(1, 2, figsize=(12, 6))
 
     # K-means clustering visualization
     axes[0].scatter(sequences_2d[:, 0], sequences_2d[:, 1], c=kmeans_labels, cmap='viridis')
@@ -138,24 +166,25 @@ def embedsong(name = "let_it_go.wav" ): #replace with your song route in .wav fo
     axes[1].set_ylabel('PCA Component 2')
 
     plt.tight_layout()
-    plt.show()'''
+    plt.show()"""
 
     if cluster == "AGG":
-        values =  [np.array(point_maker( embeddings, agg_labels, x)) for x in range(0, 4)]         
+        values = [np.array(point_maker(embeddings, agg_labels, x)) for x in range(0, 4)]
         x = values[0]
         y = values[1]
         z = values[2]
         c = values[3]
     elif cluster == "kmeans":
-        values =  [np.array(point_maker( embeddings, kmeans_labels, x)) for x in range(0, 4)] 
+        values = [
+            np.array(point_maker(embeddings, kmeans_labels, x)) for x in range(0, 4)
+        ]
         x = values[0]
         y = values[1]
         z = values[2]
         c = values[3]
-    else:   
+    else:
         x, y, z, c = PCAPointmaker(embeddings)
 
-    return np.column_stack((np.array(x),np.array(y),np.array(z),np.array(c)))
 
 if __name__ == "__main__":
-    print(embedsong())
+    print(embedsong(args.musicpath))

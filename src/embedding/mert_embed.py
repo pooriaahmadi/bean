@@ -31,6 +31,12 @@ parser.add_argument(
     help="The intervals at which the embedding happens",
     default=0.3,
 )
+parser.add_argument(
+    "--clusters",
+    type=float,
+    help="The number of clusters",
+    default=3,
+)
 
 args = parser.parse_args()
 """
@@ -146,9 +152,9 @@ def embedsong(name):  # replace with your song route in .wav format
     sequences_2d = pca.fit_transform(sequences_no_outliers_z)
 
     # Apply K-means and Agglomerative Clustering
-    kmeans = sk.KMeans(n_clusters=4)
+    kmeans = sk.KMeans(n_clusters=args.clusters)
     kmeans_labels = kmeans.fit_predict(sequences_no_outliers_z)
-    agg_clustering = sk.AgglomerativeClustering(n_clusters=4)
+    agg_clustering = sk.AgglomerativeClustering(n_clusters=args.clusters)
     agg_labels = agg_clustering.fit_predict(sequences_no_outliers_z)
 
     """fig, axes = plt.subplots(1, 2, figsize=(12, 6))

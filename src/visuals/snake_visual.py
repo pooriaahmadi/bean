@@ -164,7 +164,14 @@ class GameView(arcade.View):
         self.points = remove_outliers(self.music[:, :2])
         self.points = normalize_array_to_0_1(self.points)
 
-        self.points *= (WINDOW_WIDTH, WINDOW_HEIGHT)
+        points_x = remove_outliers(self.music[:, 0], axis=0)
+        points_x = normalize_array_to_0_1(points_x)
+
+        points_y = remove_outliers(self.music[:, 1], axis=0)
+        points_y = normalize_array_to_0_1(points_y)
+
+        self.points = np.column_stack((points_x, points_y))
+        self.points *= (WINDOW_WIDTH - 30, WINDOW_HEIGHT - 30)
 
         # Create smooth points
 

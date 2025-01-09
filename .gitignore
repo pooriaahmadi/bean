@@ -8,3 +8,5 @@ audios
 *.npy
 tmp
 /*.mp4
+*.png
+*.pyc

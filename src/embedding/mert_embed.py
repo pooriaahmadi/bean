@@ -10,6 +10,7 @@ import librosa
 from scipy.stats import zscore
 from sklearn import cluster as sk
 from sklearn.decomposition import PCA
+import sklearn
 
 import argparse
 
@@ -33,7 +34,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "--clusters",
-    type=float,
+    type=int,
     help="The number of clusters",
     default=3,
 )
@@ -87,7 +88,7 @@ def PCAPointmaker(embeddings):
 
 
 def embedsong(name):  # replace with your song route in .wav format
-    cluster = "PCA"  # sets type of clustering to be used. Can be "AGG" - Agglomerate, "Kmeans" - KMeans, or "PCA" - PCA Dimension reduction
+    cluster = "kmeans"  # sets type of clustering to be used. Can be "AGG" - Agglomerate, "Kmeans" - KMeans, or "PCA" - PCA Dimension reduction
 
     # load wav
     input_data, sample_rate = librosa.load(name)
@@ -174,22 +175,30 @@ def embedsong(name):  # replace with your song route in .wav format
     plt.tight_layout()
     plt.show()"""
 
-    if cluster == "AGG":
-        values = [np.array(point_maker(embeddings, agg_labels, x)) for x in range(0, 4)]
-        x = values[0]
-        y = values[1]
-        z = values[2]
-        c = values[3]
-    elif cluster == "kmeans":
-        values = [
-            np.array(point_maker(embeddings, kmeans_labels, x)) for x in range(0, 4)
-        ]
-        x = values[0]
-        y = values[1]
-        z = values[2]
-        c = values[3]
-    else:
-        x, y, z, c = PCAPointmaker(embeddings)
+    # if cluster == "AGG":
+    #     values = [np.array(point_maker(embeddings, agg_labels, x)) for x in range(0, 4)]
+    #     x = values[0]
+    #     y = values[1]
+    #     z = values[2]
+    #     c = values[3]
+    # elif cluster == "kmeans":
+    # values = [np.array(point_maker(embeddings, kmeans_labels, x)) for x in range(0, 4)]
+    #     x = values[0]
+    #     y = values[1]
+    #     z = values[2]
+    #     c = values[3]
+    # else:
+    #     x, y, z, c = PCAPointmaker(embeddings)
+    values = [np.array(point_maker(embeddings, kmeans_labels, x)) for x in range(0, 4)]
+    x = values[0]
+    y = values[1]
+    z = values[2]
+    c = values[3]
+
+    np.save(
+        args.outputpath,
+        np.column_stack((np.array(x), np.array(y), np.array(z), np.array(c))),
+    )
 
 
 if __name__ == "__main__":

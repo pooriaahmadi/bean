@@ -35,7 +35,7 @@ parser.add_argument(
 
 parser.add_argument(
     "--visuals",
-    choices=["snake", "3d"],
+    choices=["snake", "3d", "big_picture"],
     help="The type of visualization",
     required=True,
 )
@@ -80,7 +80,18 @@ def generate_embedding(filepath, outputpath, embed_model):
                 outputpath,
             ]
         case "mert":
-            command = []
+            command = [
+                venv_python,
+                "src/embedding/mert_embed.py",
+                "--musicpath",
+                filepath,
+                "--outputpath",
+                outputpath,
+                "--clusters",
+                "4" if args.visuals == "snake" else "3",
+                "--timeframe",
+                "0.3",
+            ]
     process = subprocess.run(command, capture_output=True, text=True)
     if process.returncode == 0:
         return True
@@ -143,6 +154,32 @@ def generate_visuals(filepath, visuals, music, outputpath):
                 "--musicpath",
                 music,
             ]
+
+            subprocess.run(
+                [
+                    venv_python,
+                    "src/visuals/snake_snap_visual.py",
+                    "--embedding",
+                    filepath,
+                    "--embedding_interval",
+                    "0.48",
+                ],
+                capture_output=True,
+                text=True,
+            )
+        case "big_picture":
+            subprocess.run(
+                [
+                    venv_python,
+                    "src/visuals/snake_snap_visual.py",
+                    "--embedding",
+                    filepath,
+                    "--embedding_interval",
+                    "0.48",
+                ],
+                capture_output=True,
+                text=True,
+            )
     process = subprocess.run(command, capture_output=True, text=True)
 
 
@@ -166,8 +203,10 @@ def attach_audio(input_video, input_audio, output_video):
 
 
 create_or_clear_folder("tmp")
-generate_embedding(args.music, "tmp/embeddings.npy")
-generate_clusters("tmp/embeddings.npy", "tmp/reduced_embeddings.npy", args.visuals)
+generate_embedding(args.music, "tmp/embeddings.npy", args.embed_model)
+generate_clusters(
+    "tmp/embeddings.npy", "tmp/reduced_embeddings.npy", args.visuals, args.embed_model
+)
 generate_visuals(
     "tmp/reduced_embeddings.npy", args.visuals, args.music, "tmp/visual_video.mp4"
 )

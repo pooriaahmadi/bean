@@ -45,12 +45,12 @@ Make sure to put the .wav file in the root of the project (in the same folder as
 
 #### Windows:
 ```bash
-python main.py --music sparks.wav --visuals snake
+python main.py --music sparks.wav --visuals snake --embed_type yamnet
 ```
 
 #### Linux:
 ```bash
-python3 main.py --music sparks.wav --visuals snake
+python3 main.py --music sparks.wav --visuals snake --embed_type yamnet
 ```
 
 This will take a while and you have to let the program visualize the whole thing first, DO NOT CLOSE the visualizer window. It will close itself and it will take a while to generate the final output video. BE PATIENT.
